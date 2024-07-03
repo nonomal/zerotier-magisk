@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 
 import './authed_client.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,9 +41,10 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-Future zerotierCommand(String exe, String command) {
-  return Process.run('su', ['-c', '/data/adb/zerotier/$exe', command],
-      environment: {'LD_LIBRARY_PATH': '/system/lib64:/data/adb/zerotier/lib'});
+Future<void> zerotierCommand(String command) async {
+  final path = (await getApplicationDocumentsDirectory()).path;
+  final file = File('$path/run/pipe');
+  await file.writeAsString(command);
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -73,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void joinNetwork(String id) async {
+  Future<void> joinNetwork(String id) async {
     final client = await authed.client;
     final resp = await client.put(Uri.http('localhost:9993', 'network/$id'));
     if (resp.statusCode != 200) {
@@ -125,9 +127,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _MyHomePageState() : super() {
     restartFn =
-        cmdButtonWrapper(() => zerotierCommand('zerotier.sh', 'restart'));
-    startFn = cmdButtonWrapper(() => zerotierCommand('zerotier.sh', 'start'));
-    stopFn = cmdButtonWrapper(() => zerotierCommand('zerotier.sh', 'stop'));
+        cmdButtonWrapper(() => zerotierCommand('restart'));
+    startFn = cmdButtonWrapper(() => zerotierCommand('start'));
+    stopFn = cmdButtonWrapper(() => zerotierCommand('stop'));
     joinFn = cmdButtonWrapper(() => joinNetwork(_idInputController.text));
   }
 
